@@ -10,6 +10,10 @@ dotenv.config();
 
 const router = express.Router();
 
+router.get("/", (req, res) => {
+  res.send("Auth route");
+});
+
 router.post("/signup/admin", async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -90,6 +94,10 @@ router.post("/login", async (req, res) => {
     // check password
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
+      console.log("Invalid credentials");
+      console.log("user email: " + email);
+      console.log("user password: " + user.password);
+      console.log("sent: " + password);
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
