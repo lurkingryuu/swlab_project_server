@@ -49,7 +49,25 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post('/startattendance', async (req, res) => {
+// courses
+router.get("/courses", async (req, res) => {
+  try {
+    const coursesData = [];
+    for (const course_id of req.user.courses) {
+      const course = await Course.findById(course_id);
+      coursesData.push({
+        Id: course.courseid,
+        Name: course.coursename,
+      });
+    }
+    res.json({ data: coursesData });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.post("/startattendance", async (req, res) => {
   try {
     const { courseid, time } = req.body;
     const course = await Course.findOne({ courseid: courseid });
@@ -58,12 +76,23 @@ router.post('/startattendance', async (req, res) => {
       return res.status(400).json({ message: "Course not found" });
     }
 
+    // check if the teacher is teaching the course
+    if (!course.teachers.includes(req.user._id)) {
+      return res
+        .status(400)
+        .json({ message: "You are not teaching this course" });
+    }
+
     // check if the attendance is already started
+    let attendance_already_found = false;
     course.attendance.forEach((attendance) => {
       if (attendance.end > Date.now()) {
-        return res.status(400).json({ message: "Attendance already started" });
+        attendance_already_found = true;
       }
     });
+    if (attendance_already_found) {
+      return res.status(400).json({ message: "Attendance already started" });
+    }
 
     const attendance = {
       date: Date.now(),
@@ -72,7 +101,7 @@ router.post('/startattendance', async (req, res) => {
       start: Date.now(),
       end: Date.now() + 1000 * time * 60,
     };
-    
+
     course.attendance.push(attendance);
     await course.save();
     res.json({ message: "Attendance started" });
@@ -82,7 +111,7 @@ router.post('/startattendance', async (req, res) => {
   }
 });
 
-router.post('/endattendance', async (req, res) => {
+router.post("/endattendance", async (req, res) => {
   try {
     const { courseid } = req.body;
     const course = await Course.findOne({ courseid: courseid });
@@ -98,7 +127,7 @@ router.post('/endattendance', async (req, res) => {
         attendance = att;
       }
     });
-    
+
     if (!attendance) {
       return res.status(400).json({ message: "Attendance not started" });
     }
@@ -108,7 +137,7 @@ router.post('/endattendance', async (req, res) => {
 
     // update student attendance
     course.students.forEach(async (student) => {
-      if(!attendance.present.includes(student.studentid)) {
+      if (!attendance.present.includes(student.studentid)) {
         attendance.absent.push(student.studentid);
       }
     });
@@ -122,5 +151,129 @@ router.post('/endattendance', async (req, res) => {
   }
 });
 
+// send course details of a particular course
+router.get("/courses/:courseid", async (req, res) => {
+  try {
+    const course = await Course.findOne({ courseid: req.params.courseid });
+
+    if (!course) {
+      return res.status(400).json({ message: "Course not found" });
+    }
+
+    // check if the teacher is teaching the course
+    if (!course.teachers.includes(req.user._id)) {
+      return res
+        .status(400)
+        .json({ message: "You are not teaching this course" });
+    }
+
+    const student_list = [];
+    let total_classes = 0;
+    let total_students = 0;
+    for (const student of course.students) {
+      const student_data = await Student.findById(student.studentid);
+      student_list.push({
+        Id: student_data.id,
+        Name: student_data.name,
+      });
+      total_students++;
+    }
+
+    for (const attendance of course.attendance) {
+      total_classes++;
+    }
+
+    res.json({
+      students: student_list,
+      total_classes: total_classes,
+      total_students: total_students,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// send attendance details of a particular course
+router.get("/courses/:courseid/attendance", async (req, res) => {
+  try {
+    const course = await Course.findOne({ courseid: req.params.courseid });
+
+    if (!course) {
+      return res.status(400).json({ message: "Course not found" });
+    }
+
+    // check if the teacher is teaching the course
+    if (!course.teachers.includes(req.user._id)) {
+      return res
+        .status(400)
+        .json({ message: "You are not teaching this course" });
+    }
+
+    const attendance_list = [];
+    for (const attendance of course.attendance) {
+      attendance_list.push({
+        id: attendance._id,
+        date: attendance.date,
+        present: attendance.present.length,
+        absent: attendance.absent.length,
+      });
+    }
+
+    res.json({ attendance: attendance_list });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// send student details of attendance of a particular course
+router.get("/courses/:courseid/attendance/:attendanceid", async (req, res) => {
+  try {
+    const course = await Course.findOne({ courseid: req.params.courseid });
+
+    if (!course) {
+      return res.status(400).json({ message: "Course not found" });
+    }
+
+    // check if the teacher is teaching the course
+    if (!course.teachers.includes(req.user._id)) {
+      return res
+        .status(400)
+        .json({ message: "You are not teaching this course" });
+    }
+
+    const attendance = await Attendance.findById(req.params.attendanceid);
+
+    if (!attendance) {
+      return res.status(400).json({ message: "Attendance not found" });
+    }
+
+    const present_list = [];
+    const absent_list = [];
+    for (const student of course.students) {
+      const student_data = await Student.findById(student.studentid);
+      if (attendance.present.includes(student.studentid)) {
+        present_list.push({
+          Id: student_data.id,
+          Name: student_data.name,
+        });
+      } else {
+        absent_list.push({
+          Id: student_data.id,
+          Name: student_data.name,
+        });
+      }
+    }
+
+    res.json({
+      present: present_list,
+      absent: absent_list,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 module.exports = router;

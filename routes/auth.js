@@ -10,9 +10,6 @@ dotenv.config();
 
 const router = express.Router();
 
-router.get("/", (req, res) => {
-  res.send("Auth route");
-});
 
 router.post("/signup/admin", async (req, res) => {
   try {
@@ -88,7 +85,10 @@ router.post("/login", async (req, res) => {
 
     // if user not found
     if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      console.log("Invalid credentials");
+      console.log("user email: " + email);
+      console.log("sent: " + password);
+      return res.status(401).json({ message: "Invalid Email" });
     }
 
     // check password
@@ -98,7 +98,7 @@ router.post("/login", async (req, res) => {
       console.log("user email: " + email);
       console.log("user password: " + user.password);
       console.log("sent: " + password);
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Invalid Password" });
     }
 
     // generate token
@@ -108,7 +108,7 @@ router.post("/login", async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    res.json({ token });
+    res.status(200).json({ token });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });

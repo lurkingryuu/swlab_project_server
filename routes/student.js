@@ -52,8 +52,8 @@ router.get("/courses", async (req, res) => {
     for (const course_id of req.user.courses) {
       const course = await Course.findById(course_id);
       coursesData.push({
-        courseid: course.courseid,  
-        coursename: course.coursename
+        Id: course.courseid,  
+        Name: course.coursename
       });
     }
     res.json({data: coursesData});
