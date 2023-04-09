@@ -276,4 +276,101 @@ router.get("/courses/:courseid/attendance/:attendanceid", async (req, res) => {
   }
 });
 
+// get possible proxies
+router.get("/proxies/:courseid", async (req, res) => {
+  try {
+    const course = await Course.findOne({ courseid: req.params.courseid });
+
+    if (!course) {
+      return res.status(400).json({ message: "Course not found" });
+    }
+
+    // check if the teacher is teaching the course
+    if (!course.teachers.includes(req.user._id)) {
+      return res.status(400).json({ message: "You are not teaching this course" });
+    }
+
+    const days = [];
+
+    for (attendance of course.attendance) {
+      const proxies = [];
+      for (student of attendance.present) {
+        const stu = await Student.findById(student.studentid);
+        if (proxies[student.uid] === undefined) {
+          proxies[student.uid] = [];
+        }
+        proxies[student.uid].push({
+          "Name": stu.name,
+          "Id": stu.id,
+        });
+      }
+
+      for (proxy of proxies) {
+        if (proxy.length <= 1) {
+          proxies.splice(proxy, 1);
+        }
+      }
+
+      days.push({
+        "date": attendance.date,
+        "id": attendance._id,
+        "proxies": proxies,
+      });
+    }
+
+    res.json({ proxies: days });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// delete attendance
+router.delete("/deleteattendance/:attendanceid/:studentid", async (req, res) => {
+  try {
+    const attendance = await Attendance.findById(req.params.attendanceid);
+
+    if (!attendance) {
+      return res.status(400).json({ message: "Attendance not found" });
+    }
+
+    const course = await Course.findOne({ attendance: req.params.attendanceid });
+
+    if (!course) {
+      return res.status(400).json({ message: "Course not found" });
+    }
+
+    // check if the teacher is teaching the course
+    if (!course.teachers.includes(req.user._id)) {
+      return res.status(400).json({ message: "You are not teaching this course" });
+    }
+
+    const student = await Student.findById(req.params.studentid);
+
+    if (!student) {
+      return res.status(400).json({ message: "Student not found" });
+    }
+
+    if (attendance.present.includes(student._id)) {
+      attendance.present.forEach((element, index) => {
+        if (element['studentid'] == student._id) {
+          attendance.present.splice(index, 1);
+        }
+      });
+      attendance.absent.push(student._id);
+    } else {
+      return res.status(400).json({ message: "Student is already absent" });
+    }
+
+    await attendance.save();
+
+    res.json({ message: "Attendance updated" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+
+});
+
+
 module.exports = router;

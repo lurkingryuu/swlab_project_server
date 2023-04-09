@@ -51,8 +51,9 @@ router.get("/courses", async (req, res) => {
     const coursesData = []
     for (const course_id of req.user.courses) {
       const course = await Course.findById(course_id);
+
       coursesData.push({
-        Id: course.courseid,  
+        Id: course?.courseid,  
         Name: course.coursename
       });
     }
@@ -63,17 +64,17 @@ router.get("/courses", async (req, res) => {
   }
 });
 
+
 // enroll in course
 router.post("/enroll", async (req, res) => {
   try {
     const { courseid } = req.body;
     const course = await Course.findOne({ courseid: courseid });
 
-    console.log(course);
     if (!course) {
       return res.status(404).json({ message: "Course not found" });
     }
-    if (req.user.courses.includes(course._id) || course.students.includes(req.user._id)) {
+    if (req.user.courses.includes(course._id) && course.students.includes(req.user._id)) {
       return res.status(400).json({ message: "Already enrolled" });
     }
     const student = await Student.findOne({ email: req.user.email });
@@ -112,7 +113,7 @@ router.delete("/unenroll", async (req, res) => {
   }
 });
 
-router.get('/getattendance', async (req, res) => {
+router.post('/getattendance', async (req, res) => {
   try {
     const { courseid } = req.body;
     const course = await Course.findOne({ courseid: courseid });
