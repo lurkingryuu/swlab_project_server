@@ -31,7 +31,9 @@ router.post("/signup/admin", async (req, res) => {
 router.post("/signup/student", async (req, res) => {
   try {
     const { rollno, username, email, password, name, dept, phone } = req.body;
+    console.log(req.body);
     const hashedPassword = await bcrypt.hash(password, 10);
+    
     const student = new Student({
       id: rollno,
       username,

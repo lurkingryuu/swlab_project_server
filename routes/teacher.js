@@ -171,7 +171,10 @@ router.get("/courses/:courseid", async (req, res) => {
     let total_classes = 0;
     let total_students = 0;
     for (const student of course.students) {
-      const student_data = await Student.findById(student.studentid);
+      const student_data = await Student.findById(student);
+      if (!student_data) {
+        continue;
+      }
       student_list.push({
         Id: student_data.id,
         Name: student_data.name,
