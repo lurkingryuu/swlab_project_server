@@ -53,6 +53,9 @@ const Course = mongoose.model(
         end: {
           type: Date,
         },
+        location: {
+          type: String,
+        },
       },
     ],
   })

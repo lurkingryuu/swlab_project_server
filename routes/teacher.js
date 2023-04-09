@@ -69,7 +69,7 @@ router.get("/courses", async (req, res) => {
 
 router.post("/startattendance", async (req, res) => {
   try {
-    const { courseid, time } = req.body;
+    const { courseid, time, location } = req.body;
     const course = await Course.findOne({ courseid: courseid });
 
     if (!course) {
@@ -100,6 +100,7 @@ router.post("/startattendance", async (req, res) => {
       absent: [],
       start: Date.now(),
       end: Date.now() + 1000 * time * 60,
+      location: location,
     };
 
     course.attendance.push(attendance);
@@ -348,7 +349,7 @@ router.delete("/deleteattendance/:attendanceid/:studentid", async (req, res) => 
       return res.status(400).json({ message: "You are not teaching this course" });
     }
 
-    const student = await Student.findById(req.params.studentid);
+    const student = await Student.findOne({id: req.params.studentid});
 
     if (!student) {
       return res.status(400).json({ message: "Student not found" });

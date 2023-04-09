@@ -193,6 +193,39 @@ router.post('/markattendance', async (req, res) => {
   }
 });
     
-    
+
+// get location of attendance
+router.post('/getlocation', async (req, res) => {
+  try {
+    const { courseid } = req.body;
+    const course = await Course.findOne({ courseid: courseid });
+
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+    if (!req.user.courses.includes(course._id) || !course.students.includes(req.user._id)) {
+      return res.status(400).json({ message: "Not enrolled" });
+    }
+    const student_id = req.user._id;
+
+    let attendance_id;
+    course.attendance.forEach((attendance) => {
+      if(Date.parse(attendance.start) <= Date.now() && Date.now() <= Date.parse(attendance.end)) {
+        attendance_id = attendance._id;
+      }
+    });
+
+    if (attendance_id) {
+      const att = course.attendance.filter((attendance) => attendance._id == attendance_id)[0];
+      return res.json({ location: att.location });
+    }
+    else {
+      return res.status(400).json({ message: "Attendance not scheduled" });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 module.exports = router;
