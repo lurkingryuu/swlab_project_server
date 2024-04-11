@@ -8,7 +8,7 @@
 Here I have made a backend server for the frontend app. There are various endpoints for each of the User types.
 
 ## Hosting
-This server is hosted on [](https://bit-rebels-api.onrender.com)
+This server is hosted on [https://bit-rebels-api.onrender.com](https://bit-rebels-api.onrender.com)
 
 ## Authors
 | Name | Roll Number |
